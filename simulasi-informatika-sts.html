@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi STS Informatika · Kelas X</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --panel:#21262d;--panel2:#2d333b;
+  --cyan:#00d4ff;--cyan2:#0099bb;--cyan3:rgba(0,212,255,.1);
+  --green:#3fb950;--green2:#238636;
+  --orange:#f78166;--yellow:#e3b341;
+  --purple:#d2a8ff;--pink:#ff7b72;
+  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --border:#30363d;--border2:#3d444d;
+  --shadow:0 4px 24px rgba(0,0,0,.5);
+  --shadow2:0 16px 56px rgba(0,0,0,.7);
+  --glow:0 0 30px rgba(0,212,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* scanline effect */
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+  pointer-events:none;z-index:9998;
+}
+/* ambient glow */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 900px 500px at 30% 20%,rgba(0,212,255,.05),transparent),
+    radial-gradient(ellipse 700px 400px at 80% 70%,rgba(63,185,80,.04),transparent);
+  pointer-events:none;z-index:0;
+}
+
+.page{display:none;position:relative;z-index:1;}
+.page.active{display:block;}
+
+/* ===== COVER ===== */
+#cover{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.cv-card{
+  background:var(--panel);border-radius:16px;padding:48px 42px;
+  max-width:520px;width:100%;
+  box-shadow:var(--shadow2),var(--glow);
+  border:1px solid var(--border2);position:relative;overflow:hidden;
+}
+.cv-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--cyan),var(--green),var(--yellow));
+}
+/* Terminal prompt decoration */
+.terminal-top{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;margin-bottom:24px;
+  font-family:'Fira Code',monospace;font-size:12px;
+  color:var(--text2);display:flex;align-items:center;gap:8px;
+}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.d-red{background:#ff5f56;} .d-yellow{background:#ffbd2e;} .d-green{background:#27c93f;}
+.term-text{color:var(--cyan);}
+.term-cursor{
+  display:inline-block;width:8px;height:14px;
+  background:var(--cyan);animation:cur-blink .8s infinite;vertical-align:middle;margin-left:2px;
+}
+@keyframes cur-blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.cv-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--cyan3);border:1px solid rgba(0,212,255,.25);
+  color:var(--cyan);font-size:11px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:5px 14px;border-radius:4px;margin-bottom:20px;
+  font-family:'Fira Code',monospace;
+}
+.cv-card h1{
+  font-size:30px;font-weight:800;line-height:1.25;margin-bottom:6px;
+}
+.cv-card h1 em{color:var(--cyan);font-style:normal;}
+.cv-card h2{font-size:13px;color:var(--text2);font-weight:400;margin-bottom:26px;font-family:'Fira Code',monospace;}
+
+.section-tabs{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap;}
+.stab{
+  font-size:11px;font-weight:700;padding:5px 12px;border-radius:4px;
+  border:1px solid;font-family:'Fira Code',monospace;letter-spacing:.3px;
+}
+.stab-py{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.3);color:#60a5fa;}
+.stab-da{background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.25);color:var(--green);}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:26px;}
+.sc{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:12px 6px;text-align:center;
+}
+.sc .v{font-size:22px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace;}
+.sc .l{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Fira Code',monospace;}
+.fg input,.fg select{
+  width:100%;padding:11px 14px;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:7px;
+  font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.fg input:focus,.fg select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
+.fg select option{background:var(--bg2);}
+.btn-start{
+  width:100%;padding:14px;margin-top:6px;
+  background:linear-gradient(135deg,var(--cyan2),rgba(0,100,130,1));
+  color:white;font-size:14px;font-weight:700;
+  font-family:'Fira Code',monospace;
+  border:none;border-radius:8px;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;letter-spacing:.3px;
+  position:relative;overflow:hidden;
+}
+.btn-start::before{
+  content:'$ run_exam.py ';position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:12px;opacity:.4;
+}
+.btn-start:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,212,255,.25);}
+.cv-note{font-size:10px;color:var(--text3);text-align:center;margin-top:12px;font-family:'Fira Code',monospace;}
+
+/* ===== UJIAN ===== */
+#ujian{min-height:100vh;padding:14px;}
+.top-bar{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:11px 18px;display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:14px;flex-wrap:wrap;gap:10px;box-shadow:var(--shadow);
+}
+.tb-info h3{font-size:13.5px;font-weight:700;}
+.tb-info p{font-size:11px;color:var(--text2);font-family:'Fira Code',monospace;}
+.timer-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:6px 14px;
+}
+.tl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'Fira Code',monospace;}
+.tv{font-size:22px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace;}
+.tv.warn{color:var(--yellow);}
+.tv.danger{color:var(--pink);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Section switcher */
+.section-switch{
+  display:flex;gap:8px;margin-bottom:14px;
+}
+.sw-btn{
+  padding:8px 20px;border-radius:7px;font-family:'Fira Code',monospace;
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+  border:1px solid var(--border);background:var(--panel);color:var(--text2);
+}
+.sw-btn.active{background:var(--cyan3);border-color:rgba(0,212,255,.4);color:var(--cyan);}
+.sw-btn:hover:not(.active){border-color:var(--border2);color:var(--text);}
+
+.ujian-grid{display:grid;grid-template-columns:1fr 248px;gap:14px;align-items:start;}
+@media(max-width:780px){.ujian-grid{grid-template-columns:1fr}.side{order:-1}}
+
+/* SOAL CARD */
+.qcard{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;box-shadow:var(--shadow);
+}
+.qprog{height:3px;background:var(--bg2);}
+.qprog-bar{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .4s;}
+.qhead{
+  padding:14px 20px 11px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--bg2);
+}
+.qbadge{
+  background:var(--cyan3);color:var(--cyan);border:1px solid rgba(0,212,255,.3);
+  padding:3px 14px;border-radius:4px;
+  font-size:12px;font-weight:700;font-family:'Fira Code',monospace;
+}
+.qtopic{
+  font-size:11px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;
+  background:var(--panel);border:1px solid var(--border);
+  padding:3px 10px;border-radius:4px;font-family:'Fira Code',monospace;
+}
+
+/* Code block in question */
+.qtxt{padding:18px 20px;font-size:14px;line-height:1.85;color:var(--text);border-bottom:1px solid var(--border);}
+.qtxt em{color:var(--cyan);font-style:normal;font-weight:600;}
+.code-block{
+  background:var(--bg);border:1px solid var(--border2);border-radius:7px;
+  padding:12px 16px;margin:12px 0 4px;
+  font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.8;
+  color:var(--text);overflow-x:auto;
+  border-left:3px solid var(--cyan);
+}
+.code-block .kw{color:#ff7b72;}
+.code-block .fn{color:#d2a8ff;}
+.code-block .st{color:#a5d6ff;}
+.code-block .cm{color:#8b949e;font-style:italic;}
+.code-block .nm{color:#79c0ff;}
+.code-block .op{color:#e3b341;}
+.code-block .bl{color:#f78166;}
+
+/* OPTIONS */
+.opts{padding:14px 20px 18px;display:flex;flex-direction:column;gap:7px;}
+.opt{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 14px;border:1px solid var(--border);border-radius:9px;
+  cursor:pointer;transition:all .18s;background:var(--bg2);
+  width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;
+}
+.opt:hover:not(.sel):not(.dis){border-color:var(--cyan);background:var(--cyan3);transform:translateX(3px);}
+.opt.sel{border-color:var(--cyan);background:rgba(0,212,255,.08);}
+.opt.ok{border-color:var(--green);background:rgba(63,185,80,.08);}
+.opt.wrong{border-color:var(--pink);background:rgba(255,123,114,.08);}
+.opt.dis{cursor:default;}
+.opt-ltr{
+  width:26px;height:26px;min-width:26px;border-radius:5px;
+  background:var(--panel);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--text2);
+  transition:all .18s;flex-shrink:0;font-family:'Fira Code',monospace;
+}
+.opt.sel .opt-ltr{background:var(--cyan);color:var(--bg);border-color:var(--cyan);}
+.opt.ok .opt-ltr{background:var(--green);color:var(--bg);border-color:var(--green);}
+.opt.wrong .opt-ltr{background:var(--pink);color:var(--bg);border-color:var(--pink);}
+.opt-txt{font-size:13.5px;line-height:1.55;color:var(--text);padding-top:2px;}
+.opt-txt code{
+  background:var(--bg);border:1px solid var(--border);border-radius:3px;
+  padding:1px 6px;font-family:'Fira Code',monospace;font-size:12px;color:var(--cyan);
+}
+
+/* ESSAY */
+.essay-wrap{padding:14px 20px 20px;}
+.essay-wrap textarea{
+  width:100%;min-height:180px;resize:vertical;
+  padding:14px;background:var(--bg);
+  border:1px solid var(--border2);border-radius:8px;
+  font-family:'Fira Code',monospace;font-size:13px;
+  line-height:1.7;color:var(--text);outline:none;transition:border-color .2s;
+}
+.essay-wrap textarea:focus{border-color:var(--cyan);}
+.kunci-box{display:none;margin-top:12px;background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:9px;padding:14px 16px;}
+.kunci-box.show{display:block;}
+.kunci-lbl{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;font-family:'Fira Code',monospace;}
+.kunci-txt{font-size:12.5px;line-height:1.9;color:var(--text);white-space:pre-line;font-family:'Fira Code',monospace;}
+.kunci-txt b{color:var(--cyan);font-weight:700;}
+.kunci-txt em{color:var(--green);font-style:normal;background:rgba(63,185,80,.12);padding:1px 6px;border-radius:3px;}
+.kunci-txt .code-block{font-size:12px;}
+
+.qnav{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;}
+.nav-b{padding:8px 20px;border-radius:7px;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;}
+.nav-prev{background:var(--bg2);border:1px solid var(--border);color:var(--text2);}
+.nav-prev:hover{border-color:var(--cyan);color:var(--cyan);}
+.nav-next{background:linear-gradient(135deg,var(--cyan2),rgba(0,100,130,1));color:white;border:none;}
+.nav-next:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,255,.25);}
+
+/* SIDEBAR */
+.side{display:flex;flex-direction:column;gap:10px;}
+.side-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow);}
+.side-title{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:11px;font-family:'Fira Code',monospace;}
+.num-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;}
+.nb{
+  aspect-ratio:1;border-radius:5px;border:1px solid var(--border);
+  background:var(--bg2);font-size:10px;font-weight:600;
+  cursor:pointer;transition:all .15s;color:var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fira Code',monospace;
+}
+.nb:hover{border-color:var(--cyan);color:var(--cyan);}
+.nb.cur{border-color:var(--cyan);background:var(--cyan3);color:var(--cyan);}
+.nb.done{background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.3);color:var(--green);}
+.nb.enb{font-size:9px;}
+.leg{display:flex;flex-direction:column;gap:5px;}
+.leg-i{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);}
+.ld{width:11px;height:11px;border-radius:3px;border:1px solid;flex-shrink:0;}
+.ld-e{border-color:var(--border);}.ld-d{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.3);}.ld-c{background:var(--cyan3);border-color:var(--cyan);}
+.submit-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,var(--green2),#1a6e2a);
+  color:white;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;
+  border:none;border-radius:9px;cursor:pointer;transition:all .2s;
+}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(63,185,80,.3);}
+
+/* ref card */
+.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.ref-card p{font-size:11px;color:var(--text2);font-family:'Fira Code',monospace;line-height:1.9;}
+.ref-card em{color:var(--cyan);font-style:normal;}
+
+/* ===== HASIL ===== */
+#hasil{min-height:100vh;padding:24px 16px;display:flex;align-items:flex-start;justify-content:center;}
+.hasil-card{background:var(--panel);border:1px solid var(--border2);border-radius:18px;max-width:700px;width:100%;overflow:hidden;box-shadow:var(--shadow2),var(--glow);}
+.hasil-hero{
+  background:linear-gradient(135deg,#0a1628,#0d2137);
+  border-bottom:2px solid var(--cyan);
+  padding:42px 32px;text-align:center;color:var(--text);position:relative;overflow:hidden;
+}
+.hasil-hero::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(0,212,255,.02) 60px,rgba(0,212,255,.02) 61px),
+    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(0,212,255,.02) 60px,rgba(0,212,255,.02) 61px);
+}
+.score-ring{
+  width:120px;height:120px;border-radius:50%;
+  border:2px solid rgba(0,212,255,.3);
+  background:rgba(0,212,255,.05);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin:0 auto 18px;position:relative;
+}
+.score-ring::after{
+  content:'';position:absolute;inset:-7px;border-radius:50%;
+  border:1px dashed rgba(0,212,255,.2);animation:spin 8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sn{font-size:44px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace;line-height:1;}
+.sl{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:1px;font-family:'Fira Code',monospace;}
+.h-nama{font-size:18px;font-weight:700;margin-bottom:3px;}
+.h-kelas{font-size:12px;color:var(--text2);font-family:'Fira Code',monospace;}
+.pred-b{display:inline-block;margin-top:12px;background:var(--cyan3);border:1px solid rgba(0,212,255,.3);color:var(--cyan);padding:5px 20px;border-radius:4px;font-size:12px;font-weight:700;font-family:'Fira Code',monospace;}
+
+.stat-row{padding:20px 26px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-bottom:1px solid var(--border);}
+.stat-b{text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:13px 8px;}
+.sv{font-size:26px;font-weight:700;font-family:'Fira Code',monospace;}
+.sv.gr{color:var(--green);}.sv.rd{color:var(--pink);}.sv.am{color:var(--yellow);}
+.slb{font-size:11px;color:var(--text3);margin-top:3px;font-family:'Fira Code',monospace;}
+
+.rev-sec{padding:20px 26px;}
+.rev-title{font-size:13px;font-weight:700;margin-bottom:10px;font-family:'Fira Code',monospace;color:var(--cyan);}
+.rev-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;padding-right:4px;}
+.ri{background:var(--bg2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;border-left:2px solid;}
+.ri.ok{border-color:var(--green);}.ri.wrong{border-color:var(--pink);}
+.rn{font-size:11px;font-weight:700;min-width:22px;color:var(--text3);font-family:'Fira Code',monospace;}
+.rb{font-size:12px;line-height:1.5;flex:1;}
+.rb .rq{color:var(--text);margin-bottom:2px;}
+.rb .ru{color:var(--text3);}.rb .ru span{font-weight:600;color:var(--text2);}
+.rb .rk{color:var(--green);font-weight:700;font-size:11px;font-family:'Fira Code',monospace;}
+
+.hasil-acts{padding:16px 26px 26px;display:flex;gap:10px;flex-wrap:wrap;}
+.btn-ulang{flex:1;padding:12px;background:linear-gradient(135deg,var(--cyan2),rgba(0,80,110,1));color:white;border:none;border-radius:9px;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;cursor:pointer;min-width:120px;transition:all .2s;}
+.btn-ulang:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,212,255,.25);}
+.btn-essay-r{flex:1;padding:12px;background:var(--bg2);border:1px solid var(--border2);color:var(--green);border-radius:9px;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;cursor:pointer;min-width:120px;transition:all .2s;}
+.btn-essay-r:hover{border-color:var(--green);}
+
+/* ===== ESSAY REVIEW ===== */
+#erPage{min-height:100vh;padding:20px;}
+.er-card{max-width:740px;margin:0 auto;background:var(--panel);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);}
+.er-head{background:linear-gradient(135deg,#0a1628,#0d2137);border-bottom:2px solid var(--cyan);padding:20px 26px;}
+.er-head h2{font-size:16px;font-weight:700;font-family:'Fira Code',monospace;color:var(--cyan);margin-bottom:3px;}
+.er-head p{font-size:11px;color:var(--text2);font-family:'Fira Code',monospace;}
+.er-item{padding:20px 26px;border-bottom:1px solid var(--border);}
+.er-item:last-child{border-bottom:none;}
+.er-num{font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;font-family:'Fira Code',monospace;}
+.er-q{font-size:13px;font-weight:600;line-height:1.65;margin-bottom:11px;}
+.er-albl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-family:'Fira Code',monospace;}
+.er-abox{background:var(--bg);border:1px solid var(--border);border-left:2px solid var(--text3);border-radius:7px;padding:10px 12px;font-size:12.5px;line-height:1.7;min-height:50px;white-space:pre-wrap;margin-bottom:10px;color:var(--text);font-family:'Fira Code',monospace;}
+.er-klbl{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-family:'Fira Code',monospace;}
+.er-kbox{background:rgba(63,185,80,.05);border:1px solid rgba(63,185,80,.2);border-radius:7px;padding:12px 14px;font-size:12px;line-height:1.85;white-space:pre-line;color:var(--text);font-family:'Fira Code',monospace;}
+.er-kbox b{color:var(--cyan);}
+.er-kbox em{color:var(--green);font-style:normal;background:rgba(63,185,80,.12);padding:1px 5px;border-radius:3px;}
+.back-btn{display:block;width:fit-content;margin:18px auto 26px;padding:10px 28px;background:linear-gradient(135deg,var(--cyan2),rgba(0,80,110,1));color:white;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.back-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,212,255,.25);}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:9997;align-items:center;justify-content:center;padding:20px;}
+.modal.show{display:flex;}
+.modal-box{background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:30px;max-width:360px;width:100%;text-align:center;box-shadow:var(--shadow2),var(--glow);}
+.mi{font-size:48px;margin-bottom:12px;}
+.mt{font-size:17px;font-weight:700;margin-bottom:7px;font-family:'Fira Code',monospace;color:var(--cyan);}
+.md{font-size:12.5px;color:var(--text2);margin-bottom:20px;line-height:1.6;font-family:'Fira Code',monospace;}
+.mbtns{display:flex;gap:10px;}
+.mc{flex:1;padding:10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);font-family:'Fira Code',monospace;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .2s;}
+.mc:hover{border-color:var(--text2);}
+.mok{flex:1;padding:10px;background:linear-gradient(135deg,var(--green2),#1a6e2a);color:white;border:none;border-radius:8px;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;cursor:pointer;}
+
+.rev-list::-webkit-scrollbar{width:4px;}
+.rev-list::-webkit-scrollbar-thumb{background:rgba(0,212,255,.25);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div id="cover" class="page active">
+  <div class="cv-card">
+    <div class="terminal-top">
+      <div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div>
+      <span class="term-text">informatika@kelas-x:~$ python simulasi_sts.py</span><span class="term-cursor"></span>
+    </div>
+    <div class="cv-chip">💻 Simulasi STS</div>
+    <h1>Informatika<br><em>Kelas X</em></h1>
+    <h2>TA 2025/2026 · Pemrograman Python + Analisis Data</h2>
+    <div class="section-tabs">
+      <span class="stab stab-py">🐍 Python (No.1–15 + E1–E3)</span>
+      <span class="stab stab-da">📊 Analisis Data (No.16–27 + E4–E6)</span>
+    </div>
+    <div class="stats-row">
+      <div class="sc"><div class="v">27</div><div class="l">PG</div></div>
+      <div class="sc"><div class="v">6</div><div class="l">Essay</div></div>
+      <div class="sc"><div class="v">90</div><div class="l">Menit</div></div>
+      <div class="sc"><div class="v">100</div><div class="l">Nilai</div></div>
+    </div>
+    <div class="fg"><label>// nama siswa</label><input type="text" id="inp-nama" placeholder="ketik_nama_kamu..."></div>
+    <div class="fg">
+      <label>// kelas</label>
+      <select id="inp-kelas">
+        <option value="">-- pilih_kelas --</option>
+        <option>X-1</option><option>X-2</option><option>X-3</option><option>X-4</option>
+        <option>X-RPL 1</option><option>X-RPL 2</option><option>X-TKJ</option>
+      </select>
+    </div>
+    <button class="btn-start" onclick="mulai()">Mulai Ujian →</button>
+    <div class="cv-note"># 27 PG (≈2,2 poin/soal) + 6 Essay · Total 100 nilai</div>
+  </div>
+</div>
+
+<!-- UJIAN -->
+<div id="ujian" class="page">
+  <div class="top-bar">
+    <div class="tb-info"><h3 id="t-nama">—</h3><p id="t-kelas">Informatika · STS Kelas X</p></div>
+    <div class="timer-wrap"><span class="tl">⏱</span><div class="tv" id="timer">90:00</div></div>
+  </div>
+  <div class="ujian-grid">
+    <div class="qcard">
+      <div class="qprog"><div class="qprog-bar" id="qpb"></div></div>
+      <div class="qhead">
+        <div class="qbadge" id="qnum">No. 1</div>
+        <div class="qtopic" id="qtopic">Python</div>
+      </div>
+      <div class="qtxt" id="qtxt"></div>
+      <div id="qbody"></div>
+      <div class="qnav">
+        <button class="nav-b nav-prev" onclick="nav(-1)">← Prev</button>
+        <button class="nav-b nav-next" id="nav-next" onclick="handleNext()">Next →</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="side-card">
+        <div class="side-title">// navigasi soal</div>
+        <p style="font-size:10px;color:var(--text3);margin-bottom:6px;font-family:'Fira Code',monospace;">PG</p>
+        <div class="num-grid" id="gpg"></div>
+        <p style="font-size:10px;color:var(--text3);margin:9px 0 6px;font-family:'Fira Code',monospace;">Essay</p>
+        <div class="num-grid" id="ge"></div>
+      </div>
+      <div class="side-card">
+        <div class="side-title">// keterangan</div>
+        <div class="leg">
+          <div class="leg-i"><div class="ld ld-e"></div> belum dijawab</div>
+          <div class="leg-i"><div class="ld ld-d"></div> sudah dijawab</div>
+          <div class="leg-i"><div class="ld ld-c"></div> soal aktif</div>
+        </div>
+      </div>
+      <div class="ref-card">
+        <div class="side-title" style="color:var(--cyan)">// quick ref</div>
+        <p>
+          <em>Python:</em> int, float, str, bool<br>
+          <em>Operator:</em> +−×/ % //<br>
+          <em>List:</em> list[0] → index 0<br>
+          <em>def</em> fungsi(param):<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<em>return</em> nilai<br>
+          <em>Stat:</em> mean=Σx/n<br>
+          <em>Range</em>=max−min
+        </p>
+      </div>
+      <button class="submit-btn" onclick="konfirmasi()">✓ submit_jawaban()</button>
+    </div>
+  </div>
+</div>
+
+<!-- HASIL -->
+<div id="hasil" class="page">
+  <div class="hasil-card">
+    <div class="hasil-hero">
+      <div class="score-ring"><div class="sn" id="h-nilai">0</div><div class="sl">nilai</div></div>
+      <div class="h-nama" id="h-nama">—</div>
+      <div class="h-kelas" id="h-kelas">—</div>
+      <div class="pred-b" id="h-pred">—</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-b"><div class="sv gr" id="s-benar">0</div><div class="slb">✓ benar</div></div>
+      <div class="stat-b"><div class="sv rd" id="s-salah">0</div><div class="slb">✗ salah</div></div>
+      <div class="stat-b"><div class="sv am" id="s-kosong">0</div><div class="slb">~ kosong</div></div>
+    </div>
+    <div class="rev-sec">
+      <div class="rev-title">// review_pg()</div>
+      <div class="rev-list" id="rev-list"></div>
+    </div>
+    <div class="hasil-acts">
+      <button class="btn-ulang" onclick="ulang()">↺ restart()</button>
+      <button class="btn-essay-r" onclick="lihatEssay()">📋 review_essay()</button>
+    </div>
+  </div>
+</div>
+
+<!-- ESSAY REVIEW -->
+<div id="erPage" class="page">
+  <div class="er-card">
+    <div class="er-head"><h2>// review_essay_answers()</h2><p>Informatika Kelas X · STS 2025/2026 · Cocokkan dengan kunci</p></div>
+    <div id="er-content"></div>
+    <button class="back-btn" onclick="showPage('hasil')">← back_to_hasil()</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="mi">💾</div>
+    <div class="mt">submit_exam()?</div>
+    <div class="md" id="m-desc"></div>
+    <div class="mbtns">
+      <button class="mc" onclick="closeModal()">cancel()</button>
+      <button class="mok" onclick="submit()">confirm()</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── TOPICS ───
+const TOPICS=[
+  'Python: Konsep Dasar','Python: Konsep Dasar','Python: Konsep Dasar',
+  'Python: Variabel & Tipe Data','Python: Variabel & Tipe Data','Python: Variabel & Tipe Data',
+  'Python: Operator','Python: Operator','Python: Operator',
+  'Python: Percabangan',
+  'Python: Perulangan','Python: Perulangan',
+  'Python: List','Python: List',
+  'Python: Fungsi',
+  'Analisis Data: Konsep','Analisis Data: Konsep','Analisis Data: Konsep',
+  'Analisis Data: Pengumpulan','Analisis Data: Penyajian','Analisis Data: Penyajian',
+  'Analisis Data: Mean','Analisis Data: Median','Analisis Data: Modus',
+  'Analisis Data: Penyebaran','Analisis Data: Penyebaran',
+  'Analisis Data: Interpretasi',
+];
+
+// ─── SOAL PG ───
+const PG=[
+/* 1 – C1 Konsep Python */
+{q:'Python adalah bahasa pemrograman yang dikembangkan pertama kali oleh...',
+ o:['James Gosling','Guido van Rossum','Linus Torvalds','Dennis Ritchie','Bjarne Stroustrup'],j:1},
+
+/* 2 – C1 Interpreter */
+{q:'Dalam Python, program yang bertugas membaca dan menjalankan kode baris per baris secara langsung disebut...',
+ o:['Compiler','Assembler','Interpreter','Linker','Debugger'],j:2},
+
+/* 3 – C2 Sintaks dasar */
+{q:'Perhatikan kode berikut:\n<code>print("Halo Dunia")</code>\n\nFungsi yang digunakan untuk menampilkan output ke layar pada Python adalah...',
+ o:['<code>display()</code>','<code>write()</code>','<code>echo()</code>','<code>print()</code>','<code>output()</code>'],j:3},
+
+/* 4 – C2 Variabel output */
+{q:'Perhatikan kode berikut:\n<code>nama = "Budi"\nusia = 17\nprint(nama, usia)</code>\n\nOutput yang akan dihasilkan adalah...',
+ o:['nama usia','Budi, 17','Budi 17','"Budi" 17','Budi + 17'],j:2},
+
+/* 5 – C2 Identifikasi tipe data */
+{q:'Perhatikan nilai-nilai berikut:\n<code>x = True\ny = 3.14\nz = "Python"\nw = 100</code>\n\nManakah pasangan variabel dan tipe data yang BENAR?',
+ o:['x = int, y = float','z = bool, w = int','x = bool, y = float','y = str, z = float','w = str, x = int'],j:2},
+
+/* 6 – C3 Konversi tipe data */
+{q:'Perhatikan kode berikut:\n<code>angka = "25"\nhasil = int(angka) + 10\nprint(hasil)</code>\n\nOutput yang dihasilkan adalah...',
+ o:['2510','35','25 + 10','Error','"35"'],j:1},
+
+/* 7 – C3 Operator aritmatika */
+{q:'Perhatikan kode berikut:\n<code>a = 17\nb = 5\nprint(a % b)\nprint(a // b)</code>\n\nOutput yang dihasilkan secara berurutan adalah...',
+ o:['2 dan 3','3 dan 2','2 dan 2','3 dan 3','1 dan 3'],j:0},
+
+/* 8 – C3 Operator perbandingan */
+{q:'Perhatikan ekspresi berikut:\n<code>x = 10\nprint(x >= 10)\nprint(x != 10)</code>\n\nOutput yang dihasilkan secara berurutan adalah...',
+ o:['True dan True','True dan False','False dan True','False dan False','10 dan True'],j:1},
+
+/* 9 – C3 Operator logika AND/OR */
+{q:'Perhatikan ekspresi berikut:\n<code>a = True\nb = False\nprint(a and b)\nprint(a or b)</code>\n\nOutput yang dihasilkan secara berurutan adalah...',
+ o:['True dan True','False dan False','False dan True','True dan False','True dan True'],j:2},
+
+/* 10 – C3 Percabangan if/elif/else */
+{q:'Perhatikan program berikut:\n<code>nilai = 75\nif nilai >= 80:\n    print("A")\nelif nilai >= 70:\n    print("B")\nelse:\n    print("C")</code>\n\nOutput yang dihasilkan adalah...',
+ o:['A','B','C','A dan B','tidak ada output'],j:1},
+
+/* 11 – C3 for loop */
+{q:'Perhatikan program berikut:\n<code>total = 0\nfor i in range(1, 5):\n    total += i\nprint(total)</code>\n\nOutput yang dihasilkan adalah...',
+ o:['10','15','4','5','14'],j:0},
+
+/* 12 – C3 while loop */
+{q:'Perhatikan program berikut:\n<code>n = 1\nwhile n <= 3:\n    print(n)\n    n += 1</code>\n\nOutput yang dihasilkan adalah...',
+ o:['1 2 3 4','1 2 3','0 1 2 3','1 2','program berjalan selamanya'],j:1},
+
+/* 13 – C2 Akses elemen list */
+{q:'Perhatikan list berikut:\n<code>buah = ["apel","mangga","jeruk","anggur"]\nprint(buah[2])</code>\n\nOutput yang dihasilkan adalah...',
+ o:['apel','mangga','jeruk','anggur','Error: index out of range'],j:2},
+
+/* 14 – C3 Manipulasi list */
+{q:'Perhatikan kode berikut:\n<code>angka = [3, 1, 4, 1, 5]\nangka.append(9)\nprint(len(angka))</code>\n\nOutput yang dihasilkan adalah...',
+ o:['5','6','7','angka','9'],j:1},
+
+/* 15 – C3 Fungsi */
+{q:'Perhatikan fungsi berikut:\n<code>def kali(a, b):\n    return a * b\n\nhasil = kali(4, 7)\nprint(hasil)</code>\n\nOutput yang dihasilkan adalah...',
+ o:['4','7','11','28','47'],j:3},
+
+/* 16 – C1 Konsep data */
+{q:'Data adalah kumpulan fakta, angka, atau keterangan yang belum diolah. Setelah data diolah dan memiliki makna, maka disebut...',
+ o:['Fakta','Database','Informasi','Statistik','Populasi'],j:2},
+
+/* 17 – C2 Jenis data kualitatif vs kuantitatif */
+{q:'Perhatikan data-data berikut:\n(1) Jumlah siswa: 35 orang\n(2) Warna favorit: biru\n(3) Nilai ujian: 85\n(4) Jenis kelamin: laki-laki\n\nYang termasuk data KUANTITATIF adalah...',
+ o:['(1) dan (2)','(2) dan (4)','(1) dan (3)','(2) dan (3)','(3) dan (4)'],j:2},
+
+/* 18 – C2 Data primer vs sekunder */
+{q:'Seorang peneliti langsung turun ke lapangan untuk menyebarkan angket kepada responden guna mengumpulkan data. Data yang diperoleh disebut...',
+ o:['Data sekunder','Data kualitatif','Data tidak langsung','Data primer','Data diskrit'],j:3},
+
+/* 19 – C2 Metode pengumpulan data */
+{q:'Teknik pengumpulan data yang dilakukan dengan mengajukan serangkaian pertanyaan tertulis kepada responden untuk diisi sendiri disebut...',
+ o:['Observasi','Wawancara','Studi pustaka','Angket/Kuesioner','Dokumentasi'],j:3},
+
+/* 20 – C3 Membaca tabel */
+{q:'Tabel nilai ujian 5 siswa:\n| Siswa | Nilai |\n|-------|-------|\n| Ari   |  80   |\n| Bima  |  75   |\n| Cika  |  90   |\n| Dani  |  85   |\n| Eka   |  70   |\n\nBerapa siswa yang mendapat nilai di atas rata-rata?',
+ o:['1 siswa','2 siswa','3 siswa','4 siswa','5 siswa'],j:1},
+
+/* 21 – C3 Jenis diagram */
+{q:'Seorang guru ingin menyajikan data persentase nilai siswa (A=20%, B=35%, C=30%, D=15%) secara proporsional. Jenis diagram yang PALING tepat digunakan adalah...',
+ o:['Diagram batang','Diagram garis','Diagram lingkaran (pie)','Histogram','Diagram pencar'],j:2},
+
+/* 22 – C3 Mean */
+{q:'Data nilai ulangan 7 siswa: 70, 80, 75, 90, 65, 85, 80\n\nNilai rata-rata (mean) dari data tersebut adalah...',
+ o:['75,0','77,5','78,0','79,3','80,0'],j:2},
+
+/* 23 – C3 Median */
+{q:'Data berikut sudah diurutkan: 60, 65, 70, 75, 80, 85, 90\n\nMedian (nilai tengah) dari data tersebut adalah...',
+ o:['70','75','80','65','85'],j:1},
+
+/* 24 – C3 Modus */
+{q:'Data nilai: 70, 85, 80, 75, 80, 90, 80, 70, 75, 80\n\nModus dari data tersebut adalah...',
+ o:['70','75','80','85','90'],j:2},
+
+/* 25 – C3 Range */
+{q:'Data tinggi badan 6 siswa (cm): 155, 162, 170, 158, 165, 168\n\nJangkauan (range) dari data tersebut adalah...',
+ o:['10 cm','12 cm','15 cm','13 cm','8 cm'],j:2},
+
+/* 26 – C3 Variasi data */
+{q:'Dua kelas memiliki nilai rata-rata yang sama (75). Kelas A memiliki range 10, sedangkan Kelas B memiliki range 40. Pernyataan yang BENAR adalah...',
+ o:['Kelas A lebih beragam nilai siswanya','Kelas B lebih homogen nilai siswanya','Kelas A memiliki data yang lebih menyebar','Kelas B lebih beragam/menyebar nilai siswanya','Kedua kelas memiliki penyebaran data yang sama'],j:3},
+
+/* 27 – C3 Interpretasi grafik */
+{q:'Diagram garis menunjukkan jumlah pengunjung perpustakaan selama 5 hari: Senin=40, Selasa=55, Rabu=70, Kamis=65, Jumat=50. Kesimpulan yang PALING tepat adalah...',
+ o:['Jumlah pengunjung terus meningkat setiap hari','Jumlah pengunjung tertinggi pada hari Kamis','Jumlah pengunjung mencapai puncak pada hari Rabu dan menurun setelahnya','Jumlah pengunjung pada Jumat lebih banyak dari Senin','Tidak ada pola yang dapat disimpulkan dari data tersebut'],j:2},
+];
+
+// ─── SOAL ESSAY ───
+const ES=[
+  // E1 – Percabangan C4
+  {
+    q:'[Python · Percabangan] Buat program Python yang meminta input nilai ujian siswa (0–100), lalu menentukan dan mencetak keterangan sebagai berikut:\n• Nilai ≥ 90 → "Sangat Baik"\n• Nilai ≥ 80 → "Baik"\n• Nilai ≥ 70 → "Cukup"\n• Nilai < 70 → "Perlu Perbaikan"\n\nTuliskan kode program lengkapnya! (Skor: 15)',
+    k:`<b>// Jawaban Program Percabangan:</b>
+
+<div class="code-block"><span class="cm"># Program penentu kategori nilai</span>
+<span class="nm">nilai</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="st">"Masukkan nilai ujian (0-100): "</span>))
+
+<span class="kw">if</span> <span class="nm">nilai</span> >= <span class="nm">90</span>:
+    <span class="fn">print</span>(<span class="st">"Sangat Baik"</span>)
+<span class="kw">elif</span> <span class="nm">nilai</span> >= <span class="nm">80</span>:
+    <span class="fn">print</span>(<span class="st">"Baik"</span>)
+<span class="kw">elif</span> <span class="nm">nilai</span> >= <span class="nm">70</span>:
+    <span class="fn">print</span>(<span class="st">"Cukup"</span>)
+<span class="kw">else</span>:
+    <span class="fn">print</span>(<span class="st">"Perlu Perbaikan"</span>)</div>
+
+<em>Poin penting:</em>
+• Gunakan int() untuk konversi input ke bilangan bulat
+• Gunakan if → elif → elif → else secara berurutan
+• Kondisi diperiksa dari nilai terbesar ke terkecil`
+  },
+
+  // E2 – Perulangan C4
+  {
+    q:'[Python · Perulangan] Buat program Python menggunakan for loop yang menampilkan deret berikut:\n1\n2\n4\n8\n16\n\n(Deret kelipatan 2, dimulai dari 1 hingga 16)\n\nTuliskan kode program lengkapnya! (Skor: 15)',
+    k:`<b>// Jawaban Program Perulangan:</b>
+
+<div class="code-block"><span class="cm"># Cara 1: menggunakan variabel pengali</span>
+<span class="nm">angka</span> = <span class="nm">1</span>
+<span class="kw">for</span> <span class="nm">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">5</span>):
+    <span class="fn">print</span>(<span class="nm">angka</span>)
+    <span class="nm">angka</span> *= <span class="nm">2</span></div>
+
+<div class="code-block"><span class="cm"># Cara 2: menggunakan while loop</span>
+<span class="nm">n</span> = <span class="nm">1</span>
+<span class="kw">while</span> <span class="nm">n</span> <= <span class="nm">16</span>:
+    <span class="fn">print</span>(<span class="nm">n</span>)
+    <span class="nm">n</span> *= <span class="nm">2</span></div>
+
+<em>Output:</em>
+1 / 2 / 4 / 8 / 16`
+  },
+
+  // E3 – Fungsi C4
+  {
+    q:'[Python · Fungsi] Buat fungsi Python bernama hitung_luas_segitiga() yang menerima dua parameter: alas dan tinggi, lalu mengembalikan (return) nilai luas segitiga.\n\nRumus: Luas = ½ × alas × tinggi\n\nSetelah membuat fungsi, panggil fungsi tersebut untuk menghitung luas segitiga dengan alas=10 dan tinggi=6, lalu cetak hasilnya! (Skor: 20)',
+    k:`<b>// Jawaban Fungsi Luas Segitiga:</b>
+
+<div class="code-block"><span class="cm"># Definisi fungsi</span>
+<span class="kw">def</span> <span class="fn">hitung_luas_segitiga</span>(<span class="nm">alas</span>, <span class="nm">tinggi</span>):
+    <span class="nm">luas</span> = <span class="nm">0.5</span> * <span class="nm">alas</span> * <span class="nm">tinggi</span>
+    <span class="kw">return</span> <span class="nm">luas</span>
+
+<span class="cm"># Pemanggilan fungsi</span>
+<span class="nm">hasil</span> = <span class="fn">hitung_luas_segitiga</span>(<span class="nm">10</span>, <span class="nm">6</span>)
+<span class="fn">print</span>(<span class="st">"Luas segitiga ="</span>, <span class="nm">hasil</span>)</div>
+
+<em>Output: Luas segitiga = 30.0</em>
+
+Poin penilaian:
+• Nama fungsi tepat dan parameter dua buah (alas, tinggi)
+• Rumus luas benar: 0.5 × alas × tinggi
+• Menggunakan return untuk mengembalikan nilai
+• Pemanggilan fungsi dengan argumen yang benar`
+  },
+
+  // E4 – Penyajian data C4
+  {
+    q:'[Analisis Data · Penyajian] Berikut adalah data nilai ulangan harian 10 siswa:\n72, 85, 90, 68, 75, 85, 92, 78, 85, 70\n\na) Sajikan data tersebut dalam bentuk tabel distribusi frekuensi dengan rentang nilai:\n   60–69, 70–79, 80–89, 90–99\nb) Tentukan jenis diagram yang paling tepat untuk menyajikan data frekuensi tersebut dan jelaskan alasannya! (Skor: 15)',
+    k:`<b>a) Tabel Distribusi Frekuensi:</b>
+
+<em>Rentang  | Frekuensi | Siswa</em>
+60 – 69  |     1     | (68)
+70 – 79  |     4     | (72, 75, 78, 70)
+80 – 89  |     3     | (85, 85, 85)
+90 – 99  |     2     | (90, 92)
+─────────────────────────
+Total    |    10     |
+
+<b>b) Jenis Diagram yang Tepat:</b>
+
+<em>Diagram Batang (Bar Chart)</em> paling tepat digunakan karena:
+• Data bersifat diskrit (frekuensi per kategori/rentang nilai)
+• Memudahkan perbandingan frekuensi antar kategori secara visual
+• Sumbu X = rentang nilai, Sumbu Y = frekuensi
+• Setiap batang mewakili satu kategori rentang nilai`
+  },
+
+  // E5 – Ukuran pemusatan C4
+  {
+    q:'[Analisis Data · Pemusatan] Data berat badan (kg) 9 siswa: 45, 50, 55, 48, 60, 55, 52, 55, 58\n\na) Hitung Mean (rata-rata)\nb) Tentukan Median (nilai tengah)\nc) Tentukan Modus (nilai paling sering muncul)\nd) Bandingkan ketiga ukuran tersebut, mana yang paling representatif untuk data ini? Jelaskan! (Skor: 20)',
+    k:`Data: 45, 50, 55, 48, 60, 55, 52, 55, 58
+Data diurutkan: 45, 48, 50, 52, 55, 55, 55, 58, 60
+
+<b>a) MEAN:</b>
+Σx = 45+50+55+48+60+55+52+55+58 = <em>478</em>
+n = 9
+<em>Mean = 478/9 = 53,1 kg</em>
+
+<b>b) MEDIAN:</b>
+n = 9 (ganjil) → data ke-5
+Urutan: 45, 48, 50, 52, <em>55</em>, 55, 55, 58, 60
+<em>Median = 55 kg</em>
+
+<b>c) MODUS:</b>
+Nilai 55 muncul 3 kali (paling sering)
+<em>Modus = 55 kg</em>
+
+<b>d) PERBANDINGAN:</b>
+• Mean = 53,1 | Median = 55 | Modus = 55
+<em>Modus dan Median (55 kg)</em> lebih representatif karena:
+• Nilai 55 paling sering muncul (3x) → mencerminkan data mayoritas
+• Mean sedikit lebih rendah karena ada nilai ekstrem bawah (45 kg)
+• Median tidak terpengaruh nilai ekstrem`
+  },
+
+  // E6 – Interpretasi data C4
+  {
+    q:'[Analisis Data · Interpretasi] Berikut data jumlah buku yang dibaca siswa dalam satu bulan:\nKelas A: 2, 5, 3, 4, 6, 3, 5, 4, 3, 5\nKelas B: 1, 8, 2, 9, 1, 7, 3, 8, 2, 9\n\na) Hitung range (jangkauan) dari masing-masing kelas\nb) Hitung mean dari masing-masing kelas\nc) Berdasarkan hasil a) dan b), kelas mana yang lebih konsisten dalam membaca? Jelaskan kesimpulanmu! (Skor: 15)',
+    k:`<b>a) RANGE (Jangkauan):</b>
+
+Kelas A: data = 2,3,3,3,4,4,5,5,5,6
+Max=6, Min=2 → <em>Range A = 6 − 2 = 4</em>
+
+Kelas B: data = 1,1,2,2,3,7,8,8,9,9
+Max=9, Min=1 → <em>Range B = 9 − 1 = 8</em>
+
+<b>b) MEAN:</b>
+
+Kelas A: Σ = 2+5+3+4+6+3+5+4+3+5 = 40
+<em>Mean A = 40/10 = 4,0 buku</em>
+
+Kelas B: Σ = 1+8+2+9+1+7+3+8+2+9 = 50
+<em>Mean B = 50/10 = 5,0 buku</em>
+
+<b>c) KESIMPULAN:</b>
+
+<em>Kelas A lebih konsisten</em> dalam membaca karena:
+• Range Kelas A (4) < Range Kelas B (8)
+• Range yang lebih kecil menunjukkan data lebih homogen/menyebar sempit
+• Meski mean Kelas B lebih tinggi (5 vs 4), nilai-nilainya sangat bervariasi (ada yang hanya 1, ada yang 9)
+• Kelas A lebih stabil: siswa membaca antara 2–6 buku secara merata`
+  },
+];
+
+// ─── STATE ───
+let cur=0, jaw=new Array(33).fill(null), nama='', kls='', ti=null, wkt=90*60, done=false;
+const H=['A','B','C','D','E'];
+
+function mulai(){
+  nama=document.getElementById('inp-nama').value.trim();
+  kls=document.getElementById('inp-kelas').value;
+  if(!nama){alert('Masukkan namamu dulu!');return;}
+  if(!kls){alert('Pilih kelasmu dulu!');return;}
+  document.getElementById('t-nama').textContent=nama;
+  document.getElementById('t-kelas').textContent='Kelas '+kls+' · Informatika · STS';
+  buatGrid();tampil(0);startTimer();showPage('ujian');
+}
+
+function buatGrid(){
+  const gp=document.getElementById('gpg'),ge=document.getElementById('ge');
+  gp.innerHTML='';ge.innerHTML='';
+  for(let i=0;i<27;i++){
+    const b=document.createElement('button');
+    b.className='nb';b.id='nb-'+i;b.textContent=i+1;
+    b.onclick=()=>tampil(i);gp.appendChild(b);
+  }
+  for(let i=0;i<6;i++){
+    const b=document.createElement('button');
+    b.className='nb enb';b.id='nb-'+(i+27);b.textContent='E'+(i+1);
+    b.onclick=()=>tampil(i+27);ge.appendChild(b);
+  }
+}
+
+function renderCode(txt){
+  return txt
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/\b(def|if|elif|else|while|for|in|return|and|or|not|True|False|None|import|from)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(print|input|int|float|str|bool|len|range|append)\b/g,'<span class="fn">$1</span>')
+    .replace(/"([^"]*)"/g,'"<span class="st">$1</span>"')
+    .replace(/'([^']*)'/g,"'<span class=\"st\">$1</span>'")
+    .replace(/#.*/g,'<span class="cm">$&</span>');
+}
+
+function tampil(idx){
+  cur=idx;
+  const pg=idx<27,si=pg?idx:idx-27,s=pg?PG[si]:ES[si];
+  document.getElementById('qnum').textContent=pg?'No. '+(idx+1):'Essay '+(si+1);
+  document.getElementById('qtopic').textContent=pg?TOPICS[idx]:'Uraian';
+
+  // render question with code blocks
+  let qtxt=s.q.replace(/\n<code>([\s\S]*?)<\/code>/g,(m,c)=>`<div class="code-block">${renderCode(c)}</div>`);
+  qtxt=qtxt.replace(/\n/g,'<br>');
+  document.getElementById('qtxt').innerHTML=qtxt;
+  document.getElementById('qpb').style.width=((idx+1)/33*100)+'%';
+
+  const qb=document.getElementById('qbody');
+  if(pg){
+    let h='<div class="opts">';
+    s.o.forEach((op,i)=>{
+      let c='';
+      if(done){if(i===s.j)c='ok dis';else if(jaw[idx]===i)c='wrong dis';else c='dis';}
+      else if(jaw[idx]===i)c='sel';
+      h+=`<button class="opt ${c}" onclick="pick(${i})"><div class="opt-ltr">${H[i]}</div><div class="opt-txt">${op}</div></button>`;
+    });
+    h+='</div>';qb.innerHTML=h;
+  } else {
+    const v=jaw[idx]||'',ro=done?'readonly':'',ks=done?'show':'';
+    qb.innerHTML=`<div class="essay-wrap"><textarea id="eta" placeholder="// tulis jawabanmu di sini..." oninput="saveE(this.value)" ${ro}>${v}</textarea><div class="kunci-box ${ks}"><div class="kunci-lbl">✓ kunci_jawaban()</div><div class="kunci-txt">${s.k}</div></div></div>`;
+  }
+  document.getElementById('nav-next').textContent=idx===32?(done?'Lihat Hasil ✓':'Kumpulkan ✓'):'Next →';
+  updGrid();
+}
+
+function pick(i){if(done)return;jaw[cur]=i;tampil(cur);}
+function saveE(v){jaw[cur]=v;updGrid();}
+function nav(d){const n=cur+d;if(n>=0&&n<=32)tampil(n);}
+function handleNext(){if(cur===32){if(done)showPage('hasil');else konfirmasi();}else nav(1);}
+
+function updGrid(){
+  for(let i=0;i<33;i++){
+    const b=document.getElementById('nb-'+i);if(!b)continue;
+    b.className='nb'+(i>=27?' enb':'');
+    if(i===cur)b.classList.add('cur');
+    else if(jaw[i]!==null&&jaw[i]!=='')b.classList.add('done');
+  }
+}
+
+function startTimer(){
+  ti=setInterval(()=>{
+    wkt--;
+    const m=String(Math.floor(wkt/60)).padStart(2,'0'),s=String(wkt%60).padStart(2,'0');
+    const el=document.getElementById('timer');
+    el.textContent=m+':'+s;el.className='tv';
+    if(wkt<=300)el.classList.add('warn');
+    if(wkt<=60)el.classList.add('danger');
+    if(wkt<=0){clearInterval(ti);submit();}
+  },1000);
+}
+
+function konfirmasi(){
+  const dp=jaw.slice(0,27).filter(j=>j!==null).length;
+  const de=jaw.slice(27).filter(j=>j!==null&&j!=='').length;
+  document.getElementById('m-desc').innerHTML=
+    `Terjawab: <strong>${dp}/27</strong> PG dan <strong>${de}/6</strong> essay.<br><br>`+
+    (dp+de<33?'⚠️ Masih ada soal yang belum dijawab.':'✅ Semua soal sudah dijawab!');
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+function submit(){
+  closeModal();clearInterval(ti);done=true;
+  let benar=0;PG.forEach((s,i)=>{if(jaw[i]===s.j)benar++;});
+  const salah=jaw.slice(0,27).filter(j=>j!==null).length-benar;
+  const kosong=jaw.slice(0,27).filter(j=>j===null).length;
+  const nilai=Math.round((benar/27)*60)+40;
+  const pred=nilai>=90?'🏆 Excellent':nilai>=80?'⭐ Good':nilai>=70?'✅ Pass':'💻 Keep Coding';
+  document.getElementById('h-nilai').textContent=nilai;
+  document.getElementById('h-nama').textContent=nama;
+  document.getElementById('h-kelas').textContent='Kelas '+kls+' · Informatika';
+  document.getElementById('h-pred').textContent=pred;
+  document.getElementById('s-benar').textContent=benar;
+  document.getElementById('s-salah').textContent=salah;
+  document.getElementById('s-kosong').textContent=kosong;
+  let html='';
+  PG.forEach((s,i)=>{
+    const ok=jaw[i]===s.j;
+    const qtxt=s.q.replace(/\n<code>[\s\S]*?<\/code>/g,' [kode]').replace(/<[^>]+>/g,'').replace(/\n/g,' ');
+    html+=`<div class="ri ${ok?'ok':'wrong'}"><div class="rn">${i+1}</div><div class="rb"><div class="rq">${qtxt.length>70?qtxt.slice(0,70)+'...':qtxt}</div><div class="ru">Jawaban: <span>${jaw[i]!==null?H[jaw[i]]+'. '+s.o[jaw[i]].replace(/<[^>]+>/g,''):'— kosong'}</span></div>${!ok?`<div class="rk">✓ ${H[s.j]}. ${s.o[s.j].replace(/<[^>]+>/g,'')}</div>`:''}</div></div>`;
+  });
+  document.getElementById('rev-list').innerHTML=html;
+  showPage('hasil');
+}
+
+function lihatEssay(){
+  let html='';
+  ES.forEach((s,i)=>{
+    const jw=jaw[i+27]||'';
+    html+=`<div class="er-item"><div class="er-num">// Essay ${i+1}</div><div class="er-q">${s.q.replace(/\n/g,'<br>')}</div><div class="er-albl">// input_siswa:</div><div class="er-abox">${jw||'<em style="color:var(--text3)">// tidak dijawab</em>'}</div><div class="er-klbl">// expected_output:</div><div class="er-kbox">${s.k}</div></div>`;
+  });
+  document.getElementById('er-content').innerHTML=html;
+  showPage('erPage');
+}
+
+function ulang(){
+  jaw=new Array(33).fill(null);cur=0;wkt=90*60;done=false;
+  clearInterval(ti);showPage('cover');
+}
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
